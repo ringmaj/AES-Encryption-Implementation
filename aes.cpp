@@ -5,8 +5,8 @@
 
 using namespace std;
 
-char state[4][4];
-char key[4][4];
+unsigned char state[4][4];
+unsigned char key[4][4];
 unsigned char sBox[16][16];
 vector<vector<unsigned char>> roundKeys;
 
@@ -93,7 +93,7 @@ void makeRoundKeys() {
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       temp.push_back(key[j][i]);
-     // cout << "pushing: " << hex << (int)temp[j]<< endl;
+      // cout << "pushing: " << hex << (int)temp[j]<< endl;
     }
     roundKeys.push_back(temp);
     temp.clear();
@@ -106,8 +106,8 @@ void makeRoundKeys() {
   int i = 4;
   int row = 0;
   int index;
-  vector <unsigned char> g;
-  vector <unsigned char> keyTuple;
+  vector<unsigned char> g;
+  vector<unsigned char> keyTuple;
 
   int r;
   int c;
@@ -115,128 +115,110 @@ void makeRoundKeys() {
   unsigned char roundConstant;
   unsigned char tempChar;
 
+  while (numRoundKeys <= 10) {
 
+    // find g(w[i-1])
+    // 1. circular byte shift left of g(w[i-1])
 
+    index = 3 + (4 * row);
+    g.push_back(roundKeys[index][1]);
+    g.push_back(roundKeys[index][2]);
+    g.push_back(roundKeys[index][3]);
+    g.push_back(roundKeys[index][0]);
 
+    // 2. Byte substitution of g(w[i-1])
 
+    cout << dec << "w[" << index << "]  = (" << hex << (int)g[0] << ", " << hex
+         << (int)g[1] << ", " << hex << (int)g[2] << ", " << hex << (int)g[3]
+         << ")" << endl;
 
-  while(numRoundKeys <= 10)
-  {
+    for (int j = 0; j < 4; j++) {
+      // find column for substitution, get lower 4 bits
+      c = g[j] & 0x0f;
+      // find row for substitution, get upper 4 bits
+      r = g[j] >> 4;
+      g[j] = sBox[r][c];
+      cout << "Substituting: " << hex << (int)roundKeys[index][j] << " -> "
+           << hex << (int)g[j] << endl;
+    }
 
-      // find g(w[i-1])
-      // 1. circular byte shift left of g(w[i-1])
+    cout << hex << (int)g[0] << " " << hex << (int)g[1] << " " << hex
+         << (int)g[2] << " " << hex << (int)g[3] << endl;
+    cout << endl;
 
-      index = 3 + (4*row);
-      g.push_back(roundKeys[index][1]);
-      g.push_back(roundKeys[index][2]);
-      g.push_back(roundKeys[index][3]);
-      g.push_back(roundKeys[index][0]);
+    // 3. Add round constant
 
-      //2. Byte substitution of g(w[i-1])
+    switch (round) {
+    case 1:
+      roundConstant = 0x01;
+      break;
+    case 2:
+      roundConstant = 0x02;
+      break;
+    case 3:
+      roundConstant = 0x04;
+      break;
+    case 4:
+      roundConstant = 0x08;
+      break;
+    case 5:
+      roundConstant = 0x10;
+      break;
+    case 6:
+      roundConstant = 0x20;
+      break;
+    case 7:
+      roundConstant = 0x40;
+      break;
+    case 8:
+      roundConstant = 0x80;
+      break;
+    case 9:
+      roundConstant = 0x1B;
+      break;
+    case 10:
+      roundConstant = 0x36;
+      break;
+    default:
+      /* code */
+      break;
+    }
 
-      cout << "w["<<index<<"]  = (" << hex << (int)g[0] << ", " << hex << (int)g[1] << ", " << hex << (int)g[2] << ", " << hex << (int)g[3] << ")"<< endl;
+    // add round constant to key
+    g[0] = g[0] ^ roundConstant;
 
+    // find first subkey w[x] for row
+    for (int j = 0; j < 4; j++) {
+      tempChar = roundKeys[i - 4][j] ^ g[j];
+      keyTuple.push_back(tempChar);
+    }
 
-      for(int j = 0 ; j < 4; j++)
-      {
-          // find column for substitution, get lower 4 bits
-          c = g[j] & 0x0f;
-          // find row for substitution, get upper 4 bits
-          r = g[j] >> 4;
-          g[j] = sBox[r][c];
-          cout << "Substituting: " << hex << (int)roundKeys[index][j]<< " -> "<< hex << (int)g[j] << endl;
+    // add key to roundkeys
+    roundKeys.push_back(keyTuple);
+    keyTuple.clear();
+
+    // find next 3 subkeys w[x] for row
+    for (int j = 1; j < 4; j++) {
+      int keyIndex = index + j;
+
+      for (int k = 0; k < 4; k++) {
+        tempChar = roundKeys[keyIndex][k] ^ roundKeys[keyIndex - 3][k];
+        keyTuple.push_back(tempChar);
       }
 
+      roundKeys.push_back(keyTuple);
+      keyTuple.clear();
+    }
 
-
-          cout << hex << (int)g[0] << " " << hex << (int)g[1] << " " << hex << (int)g[2] << " " << hex << (int)g[3] << endl;
-
-
-          //3. Add round constant
-
-          switch (round)
-          {
-            case 1:
-                roundConstant = 0x01;
-                break;
-            case 2:
-                roundConstant = 0x02;
-                break;
-            case 3:
-                roundConstant = 0x04;
-                break;
-            case 4:
-                roundConstant = 0x08;
-                break;
-            case 5:
-                roundConstant = 0x10;
-                break;
-            case 6:
-                roundConstant = 0x20;
-                break;
-            case 7:
-                roundConstant = 0x40;
-                break;
-            case 8:
-                roundConstant = 0x80;
-                break;
-            case 9:
-                roundConstant = 0x1B;
-                break;
-            case 10:
-                roundConstant = 0x36;
-                break;
-          default:
-              /* code */
-              break;
-          }
-
-
-          // add round constant to key
-          g[0] = g[0] ^ roundConstant;
-
-
-
-          // find first subkey w[x] for row
-          for(int j = 0; j < 4; j++)
-          {
-              tempChar = roundKeys[i-4][j] ^ g[j];
-              keyTuple.push_back(tempChar);
-          }
-
-          // add key to roundkeys
-          roundKeys.push_back(keyTuple);
-          keyTuple.clear();
-
-
-          // find next 3 subkeys w[x] for row
-          for(int j = 1; j < 4; j++)
-          {
-              int keyIndex = index + j;
-
-              for (int k = 0; k < 4; k++)
-              {
-                  tempChar = roundKeys[keyIndex][k] ^ roundKeys[keyIndex - 3][k];
-                  keyTuple.push_back(tempChar);
-              }
-
-              roundKeys.push_back(keyTuple);
-              keyTuple.clear();
-
-          }
-
-
-      // find next row
-      i = i + 4;
-      round++;
-      numRoundKeys++;
-      row++;
-      g.clear();
+    // find next row
+    i = i + 4;
+    round++;
+    numRoundKeys++;
+    row++;
+    g.clear();
   }
-
-
-
 }
+
 
 void printState() {
 
@@ -287,24 +269,132 @@ void printKey() {
 
 void printRountKeys() {
 
-  cout << "roundkeys size: " << roundKeys.size() << endl;
+  cout << dec << "Number of sub-keys: " << roundKeys.size() << endl;
   int round = 0;
-  for (int i = 0; i < roundKeys.size(); i = i+4) {
+  for (int i = 0; i < roundKeys.size(); i = i + 4) {
 
-    cout << "Round " << round << ": ";
+    cout << dec << "Round " << round << ": ";
 
-    for(int j = 0; j < 4; j++)
-        cout << hex << (int)roundKeys[i][j] <<" ";
-        for(int j = 0; j < 4; j++)
-            cout << hex << (int)roundKeys[i+1][j] <<" ";
-            for(int j = 0; j < 4; j++)
-                cout << hex << (int)roundKeys[i+2][j] <<" ";
-                for(int j = 0; j < 4; j++)
-                    cout << hex << (int)roundKeys[i+3][j] <<" ";
+    for (int j = 0; j < 4; j++)
+      cout << hex << (int)roundKeys[i][j] << " ";
+    for (int j = 0; j < 4; j++)
+      cout << hex << (int)roundKeys[i + 1][j] << " ";
+    for (int j = 0; j < 4; j++)
+      cout << hex << (int)roundKeys[i + 2][j] << " ";
+    for (int j = 0; j < 4; j++)
+      cout << hex << (int)roundKeys[i + 3][j] << " ";
 
     cout << endl;
     round++;
   }
+}
+
+void substituteBytes(){
+
+    int r;
+    int c;
+
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            // find column for substitution, get lower 4 bits
+            c = state[i][j] & 0x0f;
+            // find row for substitution, get upper 4 bits
+            r = state[i][j] >> 4;
+
+            state[i][j] = sBox[r][c];
+
+        }
+    }
+}
+
+void addRoundKey(int round)
+{
+    int r = round * 4;
+
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 0; j < 4; j++)
+        {
+            state[j][i] = state[j][i] ^ roundKeys[r][j];
+        }
+        r++;
+    }
+}
+
+void shiftRows()
+{
+    vector<unsigned char> stateTuple;
+    int row = 1;
+
+    // second row, left circular shift by 1
+    stateTuple.push_back(state[row][1]);
+    stateTuple.push_back(state[row][2]);
+    stateTuple.push_back(state[row][3]);
+    stateTuple.push_back(state[row][0]);
+
+    for (int i = 0; i < 4; i++)
+    {
+        state[row][i] = stateTuple[i];
+    }
+
+    // second row, left circular shift by 2
+    row++;
+    stateTuple.clear();
+    stateTuple.push_back(state[row][2]);
+    stateTuple.push_back(state[row][3]);
+    stateTuple.push_back(state[row][0]);
+    stateTuple.push_back(state[row][1]);
+
+    for (int i = 0; i < 4; i++)
+    {
+        state[row][i] = stateTuple[i];
+    }
+
+
+    // third row, left circular shift by 3
+    row++;
+    stateTuple.clear();
+    stateTuple.push_back(state[row][3]);
+    stateTuple.push_back(state[row][0]);
+    stateTuple.push_back(state[row][1]);
+    stateTuple.push_back(state[row][2]);
+
+    for (int i = 0; i < 4; i++)
+    {
+        state[row][i] = stateTuple[i];
+    }
+
+}
+
+void AES(){
+
+    int roundKeyNum = 0;
+    int round = 0;
+
+    //round 0, add roundkey to state matrix
+    addRoundKey(0);
+    printState();
+    round++;
+
+    substituteBytes();
+    printState();
+
+    shiftRows();
+    printState();
+
+
+    // while(round < 10)
+    // {
+    //
+    //
+    // }
+
+
+
+
+
 }
 
 int main() {
@@ -329,12 +419,13 @@ int main() {
 
   makeState(plainText);
   makeKey(key);
-   printState();
-   printKey();
+  printState();
+  printKey();
   // printSBox();
   makeRoundKeys();
   printRountKeys();
 
+  AES();
 
   return 0;
 }
