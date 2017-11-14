@@ -8,7 +8,7 @@ using namespace std;
 char state[4][4];
 char key[4][4];
 unsigned char sBox[16][16];
-vector<vector<char>> roundKeys;
+vector<vector<unsigned char>> roundKeys;
 
 unsigned char sArray[256] = {
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B,
@@ -89,11 +89,11 @@ void makeKey(string keyInput) {
 
 void makeRoundKeys() {
   // add inital keys for round 0
-  vector<char> temp;
+  vector<unsigned char> temp;
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       temp.push_back(key[j][i]);
-      cout << "pushing: " << hex << (int)temp[j]<< endl;
+     // cout << "pushing: " << hex << (int)temp[j]<< endl;
     }
     roundKeys.push_back(temp);
     temp.clear();
@@ -106,9 +106,21 @@ void makeRoundKeys() {
   int i = 4;
   int row = 0;
   int index;
-  vector <char> g;
+  vector <unsigned char> g;
+  vector <unsigned char> keyTuple;
 
-  while(numRoundKeys < 40)
+  int r;
+  int c;
+  int round = 1;
+  unsigned char roundConstant;
+  unsigned char tempChar;
+
+
+
+
+
+
+  while(numRoundKeys <= 10)
   {
 
       // find g(w[i-1])
@@ -120,13 +132,104 @@ void makeRoundKeys() {
       g.push_back(roundKeys[index][3]);
       g.push_back(roundKeys[index][0]);
 
+      //2. Byte substitution of g(w[i-1])
+
+      cout << "w["<<index<<"]  = (" << hex << (int)g[0] << ", " << hex << (int)g[1] << ", " << hex << (int)g[2] << ", " << hex << (int)g[3] << ")"<< endl;
+
+
+      for(int j = 0 ; j < 4; j++)
+      {
+          // find column for substitution, get lower 4 bits
+          c = g[j] & 0x0f;
+          // find row for substitution, get upper 4 bits
+          r = g[j] >> 4;
+          g[j] = sBox[r][c];
+          cout << "Substituting: " << hex << (int)roundKeys[index][j]<< " -> "<< hex << (int)g[j] << endl;
+      }
 
 
 
+          cout << hex << (int)g[0] << " " << hex << (int)g[1] << " " << hex << (int)g[2] << " " << hex << (int)g[3] << endl;
+
+
+          //3. Add round constant
+
+          switch (round)
+          {
+            case 1:
+                roundConstant = 0x01;
+                break;
+            case 2:
+                roundConstant = 0x02;
+                break;
+            case 3:
+                roundConstant = 0x04;
+                break;
+            case 4:
+                roundConstant = 0x08;
+                break;
+            case 5:
+                roundConstant = 0x10;
+                break;
+            case 6:
+                roundConstant = 0x20;
+                break;
+            case 7:
+                roundConstant = 0x40;
+                break;
+            case 8:
+                roundConstant = 0x80;
+                break;
+            case 9:
+                roundConstant = 0x1B;
+                break;
+            case 10:
+                roundConstant = 0x36;
+                break;
+          default:
+              /* code */
+              break;
+          }
+
+
+          // add round constant to key
+          g[0] = g[0] ^ roundConstant;
+
+
+
+          // find first subkey w[x] for row
+          for(int j = 0; j < 4; j++)
+          {
+              tempChar = roundKeys[i-4][j] ^ g[j];
+              keyTuple.push_back(tempChar);
+          }
+
+          // add key to roundkeys
+          roundKeys.push_back(keyTuple);
+          keyTuple.clear();
+
+
+          // find next 3 subkeys w[x] for row
+          for(int j = 1; j < 4; j++)
+          {
+              int keyIndex = index + j;
+
+              for (int k = 0; k < 4; k++)
+              {
+                  tempChar = roundKeys[keyIndex][k] ^ roundKeys[keyIndex - 3][k];
+                  keyTuple.push_back(tempChar);
+              }
+
+              roundKeys.push_back(keyTuple);
+              keyTuple.clear();
+
+          }
 
 
       // find next row
       i = i + 4;
+      round++;
+      numRoundKeys++;
       row++;
       g.clear();
   }
@@ -185,9 +288,10 @@ void printKey() {
 void printRountKeys() {
 
   cout << "roundkeys size: " << roundKeys.size() << endl;
-  for (int i = 0; i < roundKeys.size()/4; i = i+4) {
+  int round = 0;
+  for (int i = 0; i < roundKeys.size(); i = i+4) {
 
-    cout << "Round " << i << ": ";
+    cout << "Round " << round << ": ";
 
     for(int j = 0; j < 4; j++)
         cout << hex << (int)roundKeys[i][j] <<" ";
@@ -199,6 +303,7 @@ void printRountKeys() {
                     cout << hex << (int)roundKeys[i+3][j] <<" ";
 
     cout << endl;
+    round++;
   }
 }
 
@@ -230,13 +335,6 @@ int main() {
   makeRoundKeys();
   printRountKeys();
 
-  char b2 = 'A';
-  char b4 = 'B';
-
-  char out;
-  out = 226 ^ 180;
-
-  cout << "A: " << hex << (int)out << endl;
 
   return 0;
 }
