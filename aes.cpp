@@ -270,10 +270,10 @@ void makeRoundKeys() {
 }
 
 
-void printState() {
+void printState(int round) {
 
   cout << endl;
-  cout << "     State" << endl;
+  cout << "     State Round: " << round << endl;
   cout << "________________" << endl;
   for (int i = 0; i < 4; i++) {
     cout << "| ";
@@ -284,6 +284,19 @@ void printState() {
   }
   cout << endl;
 }
+
+void printCipher(int round) {
+
+ cout << "AES after Round " << round << ": ";
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      cout << hex << (int)state[j][i] << "  ";
+    }
+  }
+  cout << endl;
+}
+
 
 void printSBox() {
 
@@ -468,9 +481,17 @@ void mixColumns()
                 r = fixedMatrix[j][y] >> 4;
                 l2 = lTable[r][c];
 
-                cout << hex << (int)copyState[y][i] << " * " << (int)fixedMatrix[j][y] << endl;
+                //cout << hex << (int)copyState[y][i] << " * " << (int)fixedMatrix[j][y] << endl;
 
                 midResult = l1 + l2;
+
+                if(l1 + l2 > 255)
+                {
+                    //cout <<dec << int(l1) <<" + " <<(int)l2 << " = " << l1 + l2 << endl;
+                    midResult = (l1 + l2) - 0xFF;
+                }
+
+                //cout << "GREATER THAN 255: " << dec << (int)midResult << endl;
 
                 //E(midResult) XOR E(midResult2) ...
 
@@ -484,8 +505,10 @@ void mixColumns()
             }
 
             state[j][i] = result;
+            if(result > 255)
+
             result = 0x00;
-            cout<<endl;
+            //cout<<endl;
 
 
         }
@@ -499,35 +522,33 @@ void mixColumns()
 
 void AES(){
 
-    int roundKeyNum = 0;
     int round = 0;
 
     //round 0, add roundkey to state matrix
     addRoundKey(0);
-    printState();
+    printState(0);
     round++;
 
-    substituteBytes();
-    printState();
+    // for rounds 1-10
+    while(round <= 10)
+    {
+        substituteBytes();
+        shiftRows();
 
-    shiftRows();
-    printState();
+        if(round <10){
+            mixColumns();
+        }
 
-    mixColumns();
-    printState();
+        addRoundKey(round);
+        printCipher(round);
+        printState(round);
+        round++;
 
-
-    // while(round < 10)
-    // {
-    //
-    //
-    // }
-
-
-
-
+    }
 
 }
+
+
 
 int main() {
 
@@ -551,13 +572,15 @@ int main() {
 
   makeState(plainText);
   makeKey(key);
-  printState();
-  printKey();
+  //printState();
+  //printKey();
   // printSBox();
   makeRoundKeys();
   printRountKeys();
 
   AES();
+
+
 
   return 0;
 }
