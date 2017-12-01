@@ -1,5 +1,6 @@
 #include "State.h"
 #include <iostream>
+#include  <iomanip>
 #include <string>
 #include <vector>
 
@@ -270,15 +271,15 @@ void makeRoundKeys() {
 }
 
 
-void printState(int round) {
+void printState(int round, string stage) {
 
   cout << endl;
-  cout << "     State Round: " << round << endl;
+  cout << dec << stage << " Round: " << round << endl;
   cout << "________________" << endl;
   for (int i = 0; i < 4; i++) {
     cout << "| ";
     for (int j = 0; j < 4; j++) {
-      cout << hex << (int)state[i][j] << "  ";
+      cout << setfill('0') << setw(2) << hex << (int)state[i][j] << "  ";
     }
     cout << endl;
   }
@@ -287,11 +288,11 @@ void printState(int round) {
 
 void printCipher(int round) {
 
- cout << "AES after Round " << round << ": ";
+ cout << dec << "Cipher after Round " << round << ": ";
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      cout << hex << (int)state[j][i] << "  ";
+      cout << setfill('0') << setw(2) << hex << (int)state[j][i] << "  ";
     }
   }
   cout << endl;
@@ -339,17 +340,19 @@ void printRountKeys() {
     cout << dec << "Round " << round << ": ";
 
     for (int j = 0; j < 4; j++)
-      cout << hex << (int)roundKeys[i][j] << " ";
+      cout << setfill('0') << setw(2) << hex << (int)roundKeys[i][j] << " ";
     for (int j = 0; j < 4; j++)
-      cout << hex << (int)roundKeys[i + 1][j] << " ";
+      cout << setfill('0') << setw(2) << hex << (int)roundKeys[i + 1][j] << " ";
     for (int j = 0; j < 4; j++)
-      cout << hex << (int)roundKeys[i + 2][j] << " ";
+      cout << setfill('0') << setw(2) << hex << (int)roundKeys[i + 2][j] << " ";
     for (int j = 0; j < 4; j++)
-      cout << hex << (int)roundKeys[i + 3][j] << " ";
+      cout << setfill('0') << setw(2) << hex << (int)roundKeys[i + 3][j] << " ";
 
     cout << endl;
     round++;
   }
+  cout << endl;
+  cout << endl;
 }
 
 void substituteBytes(){
@@ -436,6 +439,7 @@ void mixColumns()
     unsigned char l1,l2,l3,l4;
     unsigned char result;
     unsigned char midResult;
+    bool lTableZero = false;
     int r;
     int c;
 
@@ -470,15 +474,22 @@ void mixColumns()
 
             for (int k = 0; k < 4; k++)
             {
+
+                lTableZero = false;
                 //state[j][i] * fixedMatrix[i][j];
 
                 // find row and column numbers
                 c = copyState[y][i] & 0x0f;
                 r = copyState[y][i] >> 4;
+                if(r == 0 && c == 0)
+                    lTableZero = true;
                 l1 = lTable[r][c];
+
 
                 c = fixedMatrix[j][y] & 0x0f;
                 r = fixedMatrix[j][y] >> 4;
+                if(r == 0 && c == 0)
+                    lTableZero = true;
                 l2 = lTable[r][c];
 
                 //cout << hex << (int)copyState[y][i] << " * " << (int)fixedMatrix[j][y] << endl;
@@ -498,6 +509,7 @@ void mixColumns()
                 c = midResult & 0x0f;
                 r = midResult >> 4;
 
+                if(lTableZero == false)
                 result = result ^ eTable[r][c];
 
 
@@ -505,10 +517,10 @@ void mixColumns()
             }
 
             state[j][i] = result;
-            if(result > 255)
+            //if(result > 255)
 
             result = 0x00;
-            //cout<<endl;
+        //    cout<<endl;
 
 
         }
@@ -520,13 +532,20 @@ void mixColumns()
 
 }
 
+void line() {
+    cout << "--------------------------------------------------------------------------------" << endl;
+}
+
 void AES(){
 
     int round = 0;
 
+    line();
+    cout << "\033[1;31mAES Round: \033[0m"<< round << endl;
+
     //round 0, add roundkey to state matrix
     addRoundKey(0);
-    printState(0);
+    printState(0, "Add Roundkey");
     round++;
 
     // for rounds 1-10
@@ -540,8 +559,8 @@ void AES(){
         }
 
         addRoundKey(round);
+        //printState(round);
         printCipher(round);
-        printState(round);
         round++;
 
     }
@@ -569,6 +588,7 @@ int main() {
   // cout << "Enter 128 bit encryption key: " << endl;
   cout << "\033[1;31mEnter 128-bit encryption key\033[0m\n";
   getline(cin, key);
+  cout<< endl;
 
   makeState(plainText);
   makeKey(key);
