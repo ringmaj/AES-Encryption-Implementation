@@ -10,6 +10,7 @@ unsigned char state[4][4];
 unsigned char key[4][4];
 unsigned char sBox[16][16];
 vector<vector<unsigned char>> roundKeys;
+vector<unsigned char> CipherResult;
 
 unsigned char sArray[256] = {
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B,
@@ -298,6 +299,26 @@ void printCipher(int round) {
   cout << endl;
 }
 
+void getCipher()
+{
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+           CipherResult.push_back(state[j][i]);
+      }
+    }
+}
+
+void printResultCipher(string plainText, string key)
+{
+    cout << "Plaintext: " << plainText << endl;
+    cout << "Key (128): " << key << endl;
+    cout << "Final Cipher: ";
+    for(int i = 0; i < CipherResult.size(); i++)
+    cout << setfill('0') << setw(2) << hex << (int)CipherResult[i] << " ";
+    cout << endl;
+
+}
+
 
 void printSBox() {
 
@@ -481,6 +502,7 @@ void mixColumns()
                 // find row and column numbers
                 c = copyState[y][i] & 0x0f;
                 r = copyState[y][i] >> 4;
+                //cout << "rc = " << r << "," << c << endl;
                 if(r == 0 && c == 0)
                     lTableZero = true;
                 l1 = lTable[r][c];
@@ -488,6 +510,7 @@ void mixColumns()
 
                 c = fixedMatrix[j][y] & 0x0f;
                 r = fixedMatrix[j][y] >> 4;
+                //cout << "rc = " << r << "," << c << endl;
                 if(r == 0 && c == 0)
                     lTableZero = true;
                 l2 = lTable[r][c];
@@ -520,7 +543,7 @@ void mixColumns()
             //if(result > 255)
 
             result = 0x00;
-        //    cout<<endl;
+            //cout<<endl;
 
 
         }
@@ -533,7 +556,7 @@ void mixColumns()
 }
 
 void line() {
-    cout << "--------------------------------------------------------------------------------" << endl;
+    cout << "\033[1;31m--------------------------------------------------------------------------------\033[0m" << endl;
 }
 
 void AES(){
@@ -541,29 +564,44 @@ void AES(){
     int round = 0;
 
     line();
-    cout << "\033[1;31mAES Round: \033[0m"<< round << endl;
+    cout << dec << "\033[1;31mAES Round: \033[0m"<< round << endl;
 
     //round 0, add roundkey to state matrix
     addRoundKey(0);
     printState(0, "Add Roundkey");
+    line();
+    cout << endl;
+    cout << endl;
     round++;
 
     // for rounds 1-10
     while(round <= 10)
     {
+        cout << dec << "\033[1;31mAES Round: \033[0m"<< round << endl;
         substituteBytes();
+        printState(round, "Substitute Bytes");
         shiftRows();
+        printState(round, "Shift Rows");
 
         if(round <10){
             mixColumns();
+            printState(round, "Mix Column");
         }
 
         addRoundKey(round);
-        //printState(round);
+        printState(round, "Add Roundkey");;
         printCipher(round);
+        cout << endl;
+        line();
+        cout << endl;
+        cout << endl;
         round++;
 
+
     }
+
+    // Pushes final cipher into CipherResult vector
+    getCipher();
 
 }
 
@@ -585,10 +623,13 @@ int main() {
   cout << "\033[1;31mEnter text to encrypt\033[0m\n";
   getline(cin, plainText);
 
+  cout << "size: " << plainText.size() << endl;
+
   // cout << "Enter 128 bit encryption key: " << endl;
   cout << "\033[1;31mEnter 128-bit encryption key\033[0m\n";
   getline(cin, key);
   cout<< endl;
+
 
   makeState(plainText);
   makeKey(key);
@@ -599,6 +640,7 @@ int main() {
   printRountKeys();
 
   AES();
+  printResultCipher(plainText,key);
 
 
 
