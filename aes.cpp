@@ -108,19 +108,42 @@ void initState() {
 }
 
 // Adds plainText into state object
-void makeState(string plainText) {
+void makeState(string &plainText) {
 
   int index = 0;
   char null = 20;
+  int size = plainText.size();
+
+  // pad the plainText to fit 16 characters
+   if(plainText.size() < 16)
+   {
+       for(int i = 0; i < (16 - size); i++)
+           plainText += '.';
+   }
+
+   cout << "plaintext: " << plainText << endl;
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
 
-      state[j][i] = plainText[index];
+      if(index >= plainText.size())
+        state[j][i] = '.';
+      else
+        state[j][i] = plainText[index];
 
       index++;
     }
   }
+
+  // Now remove the first 16 characters since we've already used them
+
+  cout << "size: " << plainText.size() << endl;
+
+
+    plainText = plainText.substr(16, string::npos);
+
+
+
 }
 
 // Adds plainText into state object
@@ -310,11 +333,21 @@ void getCipher()
 
 void printResultCipher(string plainText, string key)
 {
+    int newLine = 15;
     cout << "Plaintext: " << plainText << endl;
     cout << "Key (128): " << key << endl;
     cout << "Final Cipher: ";
-    for(int i = 0; i < CipherResult.size(); i++)
-    cout << setfill('0') << setw(2) << hex << (int)CipherResult[i] << " ";
+    for(int i = 0; i < CipherResult.size(); i++){
+        cout << setfill('0') << setw(2) << hex << (int)CipherResult[i] << " ";
+
+        if(i == newLine)
+        {
+            cout << endl;
+            cout << "              ";
+            newLine += 16;
+        }
+
+    }
     cout << endl;
 
 }
@@ -606,41 +639,86 @@ void AES(){
 }
 
 
+//https://stackoverflow.com/questions/3381614/c-convert-string-to-hexadecimal-and-vice-versa
+std::string hex_to_string(const std::string& in) {
+    std::string output;
+
+    if ((in.length() % 2) != 0) {
+        throw std::runtime_error("String is not valid length ...");
+    }
+
+    size_t cnt = in.length() / 2;
+
+    for (size_t i = 0; cnt > i; ++i) {
+        uint32_t s = 0;
+        std::stringstream ss;
+        ss << std::hex << in.substr(i * 2, 2);
+        ss >> s;
+
+        output.push_back(static_cast<unsigned char>(s));
+    }
+
+    return output;
+}
 
 int main() {
 
+  string plainText;
+  string originalPlainText;
+  string key;
+  string stringOptions;
   // initialize state and key objects
   initState();
 
   // initialize sBox
   initSBox();
 
-  string plainText;
-  string cipherText;
-  string key;
+  cout << "\033[1;31mPress 1 for string input, 2 for hex\033[0m\n";
+  getline(cin, stringOptions);
 
-  // cout << "Enter text to encrypt: " << endl;
+  // Enter inputs
   cout << "\033[1;31mEnter text to encrypt\033[0m\n";
   getline(cin, plainText);
-
-  cout << "size: " << plainText.size() << endl;
-
-  // cout << "Enter 128 bit encryption key: " << endl;
   cout << "\033[1;31mEnter 128-bit encryption key\033[0m\n";
   getline(cin, key);
+
+  if(stringOptions == "2")
+  {
+      plainText = hex_to_string(plainText);
+      key = hex_to_string(key);
+
+      cout << plainText << endl;
+      cout << key << endl;
+  }
+
+
+  // Save the original plaintext for output later
+  originalPlainText = plainText;
   cout<< endl;
 
 
-  makeState(plainText);
+
+  // Make key structure, also expand round keys
   makeKey(key);
-  //printState();
-  //printKey();
-  // printSBox();
   makeRoundKeys();
   printRountKeys();
 
-  AES();
-  printResultCipher(plainText,key);
+
+
+
+
+  while(plainText.size() > 0)
+  {
+      // build state structure from plaintext
+      makeState(plainText);
+
+      // run AES on text segment
+      AES();
+  }
+
+
+
+  printResultCipher(originalPlainText,key);
 
 
 
